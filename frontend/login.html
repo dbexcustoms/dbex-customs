@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Вход — DBEX Customs</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="index.html">DBEX<span class="sub">CUSTOMS</span></a>
+  <nav class="links"><a href="register.html">Нет аккаунта? Регистрация</a></nav>
+</div></header>
+
+<main><div class="wrap">
+  <div class="card form-narrow" style="margin:0 auto;">
+    <h1 style="font-size:24px;">Вход в личный кабинет</h1>
+    <p class="muted" style="margin-bottom:24px;">Доступ к вашим заявкам и документам.</p>
+    <div id="errorMsg" class="error-msg"></div>
+
+    <form id="loginForm">
+      <div class="field"><label>Email</label><input type="email" id="email" required></div>
+      <div class="field"><label>Пароль</label><input type="password" id="password" required></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;" id="submitBtn">Войти</button>
+    </form>
+  </div>
+</div></main>
+
+<footer><div class="wrap">© 2026 DBEX Customs</div></footer>
+
+<script src="js/api.js"></script>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.style.display = 'none';
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true; submitBtn.textContent = 'Входим…';
+
+  try {
+    const payload = {
+      email: document.getElementById('email').value.trim(),
+      password: document.getElementById('password').value,
+    };
+    const data = await api('/auth/login', { method: 'POST', body: payload });
+    setToken(data.token); setUser(data.user);
+    window.location.href = data.user.role === 'admin' ? 'admin.html' : 'dashboard.html';
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    submitBtn.disabled = false; submitBtn.textContent = 'Войти';
+  }
+});
+</script>
+</body>
+</html>

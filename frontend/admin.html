@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ-панель — DBEX Customs</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header><div class="wrap nav">
+  <a class="logo" href="index.html">DBEX<span class="sub">CUSTOMS</span></a>
+  <nav class="links"><a href="#" id="logoutLink">Выйти</a></nav>
+</div></header>
+
+<main><div class="wrap">
+  <h1>Админ-панель</h1>
+  <p class="muted" style="margin-bottom:32px;">Все заявки клиентов и изменение статусов.</p>
+  <div id="errorMsg" class="error-msg"></div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>ID</th><th>Клиент</th><th>Тип</th><th>Оценка</th><th>Статус</th><th></th></tr></thead>
+      <tbody id="appsBody"></tbody>
+    </table>
+  </div>
+</div></main>
+
+<footer><div class="wrap">© 2026 DBEX Customs</div></footer>
+
+<script src="js/api.js"></script>
+<script>
+requireLogin();
+const user = getUser();
+if (!user || user.role !== 'admin') {
+  document.body.innerHTML = '<main class="wrap"><p class="error-msg" style="display:block;margin-top:40px;">Доступ только для администраторов.</p></main>';
+}
+document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+const STATUSES = Object.keys(STATUS_LABELS);
+
+async function load() {
+  const errorEl = document.getElementById('errorMsg');
+  const body = document.getElementById('appsBody');
+  try {
+    const data = await api('/admin/applications');
+    body.innerHTML = '';
+    data.applications.forEach(app => {
+      const tr = document.createElement('tr');
+
+      const idTd = document.createElement('td');
+      const link = document.createElement('a');
+      link.href = `application.html?id=${app.id}`;
+      link.textContent = `#${app.id}`;
+      idTd.appendChild(link);
+
+      const clientTd = document.createElement('td');
+      clientTd.textContent = `${app.user_full_name} (${app.user_email})`;
+
+      const typeTd = document.createElement('td');
+      typeTd.textContent = TYPE_LABELS[app.operation_type] || app.operation_type;
+
+      const estTd = document.createElement('td');
+      estTd.textContent = `€${app.estimate_low}–€${app.estimate_high}`;
+
+      const statusTd = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = `badge badge-${app.status}`;
+      badge.textContent = STATUS_LABELS[app.status] || app.status;
+      statusTd.appendChild(badge);
+
+      const actionTd = document.createElement('td');
+      const select = document.createElement('select');
+      select.style.padding = '6px 8px'; select.style.fontSize = '13px';
+      STATUSES.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = STATUS_LABELS[s];
+        if (s === app.status) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', async () => {
+        try {
+          await api(`/admin/applications/${app.id}/status`, { method: 'PATCH', body: { status: select.value } });
+          load();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+      actionTd.appendChild(select);
+
+      tr.appendChild(idTd); tr.appendChild(clientTd); tr.appendChild(typeTd);
+      tr.appendChild(estTd); tr.appendChild(statusTd); tr.appendChild(actionTd);
+      body.appendChild(tr);
+    });
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
+  }
+}
+load();
+</script>
+</body>
+</html>
