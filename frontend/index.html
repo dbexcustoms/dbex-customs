@@ -2,112 +2,147 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DBEX Customs — таможенное оформление в Европе</title>
+<title>Личный кабинет — DBEX Customs</title>
 <link rel="stylesheet" href="css/style.css">
-<style>
-  .hero{padding:90px 0 70px;border-bottom:1px solid var(--line);}
-  .hero h1{font-size:46px;line-height:1.1;margin-bottom:20px;}
-  .hero h1 .accent{color:var(--verdigris);}
-  .hero p.lead{font-size:18px;color:var(--slate);max-width:560px;margin-bottom:32px;}
-  .hero-ctas{display:flex;gap:14px;flex-wrap:wrap;}
-  .calc-shell{background:var(--navy);color:#fff;border-radius:4px;padding:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;}
-  @media(max-width:820px){.calc-shell{grid-template-columns:1fr;}}
-  .calc-shell .field label{color:rgba(255,255,255,0.6);}
-  .calc-shell .field input, .calc-shell .field select{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);color:#fff;}
-  .calc-result{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:4px;padding:26px;display:flex;flex-direction:column;justify-content:center;}
-  .calc-result .price{font-size:38px;font-weight:800;color:var(--copper);margin-bottom:6px;}
-  .services-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);}
-  @media(max-width:820px){.services-grid{grid-template-columns:1fr;}}
-  .service-card{background:#fff;padding:30px 26px;}
-  .service-card .num{font-size:12px;color:var(--copper);font-weight:700;letter-spacing:1px;display:block;margin-bottom:14px;}
-</style>
 </head>
-<body>
+<body class="bg-pattern">
 <header><div class="wrap nav">
   <a class="logo" href="index.html">DBEX<span class="sub">CUSTOMS</span></a>
   <nav class="links">
-    <a href="index.html#services">Услуги</a>
-    <a href="index.html#calculator">Калькулятор</a>
-    <a href="login.html">Войти</a>
+    <span id="userLabel" class="muted"></span>
+    <a href="#" id="logoutLink">Выйти</a>
   </nav>
-  <a href="register.html"><button class="btn btn-primary">Регистрация</button></a>
 </div></header>
 
-<section class="hero"><div class="wrap">
-  <h1>Ваш груз проходит границу <span class="accent">без сюрпризов.</span></h1>
-  <p class="lead">DBEX Customs — таможенное оформление для малого и среднего бизнеса. Импорт, экспорт, транзит, T1, классификация товаров.</p>
-  <div class="hero-ctas">
-    <a href="register.html"><button class="btn btn-copper">Создать аккаунт и подать заявку</button></a>
-    <a href="index.html#calculator"><button class="btn btn-ghost">Рассчитать стоимость</button></a>
-  </div>
-</div></section>
-
-<section id="services" style="padding:80px 0;"><div class="wrap">
-  <h2 style="font-size:30px;margin-bottom:32px;">Услуги</h2>
-</div>
-<div class="wrap" style="padding:0;">
-  <div class="services-grid">
-    <div class="service-card"><span class="num">01</span><h3>Импортное оформление</h3><p class="muted">Декларации, расчёт пошлин и НДС.</p></div>
-    <div class="service-card"><span class="num">02</span><h3>Экспортное оформление</h3><p class="muted">Декларации, сертификаты происхождения.</p></div>
-    <div class="service-card"><span class="num">03</span><h3>Транзит и T1</h3><p class="muted">Транзитные документы, сопровождение на границе.</p></div>
-  </div>
-</div></section>
-
-<section id="calculator" style="padding:80px 0;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line);">
-  <div class="wrap">
-    <h2 style="font-size:30px;margin-bottom:32px;">Калькулятор стоимости</h2>
-    <div class="calc-shell">
-      <div>
-        <div class="field"><label>Тип операции</label>
-          <select id="operation_type">
-            <option value="import">Импорт</option>
-            <option value="export">Экспорт</option>
-            <option value="transit">Транзит / T1</option>
-          </select>
-        </div>
-        <div class="field"><label>Количество товарных позиций</label><input type="number" id="lines_count" value="3" min="1"></div>
-        <div class="field"><label>Стоимость груза, €</label><input type="number" id="cargo_value" value="15000" min="0"></div>
-      </div>
-      <div class="calc-result">
-        <div class="muted" style="color:rgba(255,255,255,0.5);font-size:12px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">Ориентировочная стоимость</div>
-        <div class="price" id="priceOut">—</div>
-        <p style="color:rgba(255,255,255,0.55);font-size:13px;margin-bottom:20px;">Без учёта пошлины и импортного НДС.</p>
-        <a href="register.html"><button class="btn btn-copper" style="width:100%;">Подать заявку</button></a>
-      </div>
+<main><div class="wrap">
+  <div class="flex-between">
+    <div>
+      <h1>Мои заявки</h1>
+      <p class="muted">История заявок и статус оформления.</p>
     </div>
+    <button class="btn btn-copper" id="newAppBtn">+ Новая заявка</button>
   </div>
-</section>
 
-<section style="padding:80px 0;text-align:center;">
-  <div class="wrap">
-    <h2 style="font-size:30px;margin-bottom:16px;">Готовы оформить первую поставку?</h2>
-    <p class="muted" style="margin-bottom:28px;">Зарегистрируйтесь и загрузите документы — мы свяжемся в течение рабочего дня.</p>
-    <a href="register.html"><button class="btn btn-copper">Создать аккаунт</button></a>
+  <div class="card" id="newAppCard" style="display:none;margin-bottom:32px;">
+    <h2>Новая заявка на оформление</h2>
+    <div id="errorMsg" class="error-msg"></div>
+    <div id="successMsg" class="success-msg"></div>
+    <form id="appForm">
+      <div class="field">
+        <label>Тип операции</label>
+        <select id="operation_type">
+          <option value="import">Импорт</option>
+          <option value="export">Экспорт</option>
+          <option value="transit">Транзит / T1</option>
+        </select>
+      </div>
+      <div class="field"><label>Количество товарных позиций</label><input type="number" id="lines_count" value="3" min="1" required></div>
+      <div class="field"><label>Стоимость груза, €</label><input type="number" id="cargo_value" value="15000" min="0" step="0.01" required></div>
+      <div class="field"><label>Комментарий (опционально)</label><textarea id="notes" maxlength="4000"></textarea></div>
+      <div id="estimatePreview" class="muted" style="margin-bottom:18px;"></div>
+      <button type="submit" class="btn btn-primary" id="submitAppBtn">Создать заявку</button>
+    </form>
   </div>
-</section>
+
+  <div class="card">
+    <div id="appsList"><p class="muted">Загрузка…</p></div>
+  </div>
+</div></main>
 
 <footer><div class="wrap">© 2026 DBEX Customs</div></footer>
 
 <script>window.DBEX_API_BASE = "https://dbex-customs-backend.onrender.com/api";</script>
 <script src="js/api.js"></script>
 <script>
-async function updateCalc() {
-  const out = document.getElementById('priceOut');
+requireLogin();
+const user = getUser();
+document.getElementById('userLabel').textContent = user ? user.full_name : '';
+document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); logout(); });
+
+document.getElementById('newAppBtn').addEventListener('click', () => {
+  const card = document.getElementById('newAppCard');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+});
+
+async function updateEstimatePreview() {
   try {
     const data = await api('/applications/estimate', { method: 'POST', body: {
       operation_type: document.getElementById('operation_type').value,
       lines_count: Number(document.getElementById('lines_count').value || 1),
       cargo_value: Number(document.getElementById('cargo_value').value || 0),
     }});
-    out.textContent = `€${data.low} – €${data.high}`;
+    document.getElementById('estimatePreview').textContent = `Ориентировочная стоимость оформления: €${data.low} – €${data.high}`;
   } catch (err) {
-    out.textContent = 'Ошибка расчёта';
+    document.getElementById('estimatePreview').textContent = '';
   }
 }
 ['operation_type','lines_count','cargo_value'].forEach(id =>
-  document.getElementById(id).addEventListener('input', updateCalc)
+  document.getElementById(id).addEventListener('input', updateEstimatePreview)
 );
-updateCalc();
+updateEstimatePreview();
+
+document.getElementById('appForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('errorMsg');
+  const successEl = document.getElementById('successMsg');
+  errorEl.style.display = 'none'; successEl.style.display = 'none';
+  const btn = document.getElementById('submitAppBtn');
+  btn.disabled = true; btn.textContent = 'Отправляем…';
+
+  try {
+    const payload = {
+      operation_type: document.getElementById('operation_type').value,
+      lines_count: Number(document.getElementById('lines_count').value),
+      cargo_value: Number(document.getElementById('cargo_value').value),
+      notes: document.getElementById('notes').value.trim(),
+    };
+    const data = await api('/applications', { method: 'POST', body: payload });
+    successEl.textContent = `Заявка #${data.application.id} создана.`;
+    successEl.style.display = 'block';
+    document.getElementById('appForm').reset();
+    loadApplications();
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Создать заявку';
+  }
+});
+
+async function loadApplications() {
+  const listEl = document.getElementById('appsList');
+  try {
+    const data = await api('/applications');
+    if (!data.applications.length) {
+      listEl.innerHTML = '<p class="muted">Заявок пока нет. Создайте первую заявку выше.</p>';
+      return;
+    }
+    listEl.innerHTML = '';
+    data.applications.forEach(app => {
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      const left = document.createElement('div');
+      const title = document.createElement('a');
+      title.href = `application.html?id=${app.id}`;
+      title.style.fontWeight = '700';
+      title.textContent = `Заявка #${app.id} — ${TYPE_LABELS[app.operation_type] || app.operation_type}`;
+      const sub = document.createElement('div');
+      sub.className = 'muted';
+      sub.textContent = `€${app.estimate_low} – €${app.estimate_high} · создана ${new Date(app.created_at).toLocaleDateString('ru-RU')}`;
+      left.appendChild(title); left.appendChild(sub);
+
+      const badge = document.createElement('span');
+      badge.className = `badge badge-${app.status}`;
+      badge.textContent = STATUS_LABELS[app.status] || app.status;
+
+      row.appendChild(left); row.appendChild(badge);
+      listEl.appendChild(row);
+    });
+  } catch (err) {
+    listEl.innerHTML = `<p class="error-msg" style="display:block;">${escapeHtml(err.message)}</p>`;
+  }
+}
+loadApplications();
 </script>
 </body>
 </html>

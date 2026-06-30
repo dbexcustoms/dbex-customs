@@ -2,51 +2,17 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Личный кабинет — DBEX Customs</title>
+<title>Заявка — DBEX Customs</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="bg-pattern">
 <header><div class="wrap nav">
   <a class="logo" href="index.html">DBEX<span class="sub">CUSTOMS</span></a>
-  <nav class="links">
-    <span id="userLabel" class="muted"></span>
-    <a href="#" id="logoutLink">Выйти</a>
-  </nav>
+  <nav class="links"><a href="dashboard.html">← К заявкам</a><a href="#" id="logoutLink">Выйти</a></nav>
 </div></header>
 
 <main><div class="wrap">
-  <div class="flex-between">
-    <div>
-      <h1>Мои заявки</h1>
-      <p class="muted">История заявок и статус оформления.</p>
-    </div>
-    <button class="btn btn-copper" id="newAppBtn">+ Новая заявка</button>
-  </div>
-
-  <div class="card" id="newAppCard" style="display:none;margin-bottom:32px;">
-    <h2>Новая заявка на оформление</h2>
-    <div id="errorMsg" class="error-msg"></div>
-    <div id="successMsg" class="success-msg"></div>
-    <form id="appForm">
-      <div class="field">
-        <label>Тип операции</label>
-        <select id="operation_type">
-          <option value="import">Импорт</option>
-          <option value="export">Экспорт</option>
-          <option value="transit">Транзит / T1</option>
-        </select>
-      </div>
-      <div class="field"><label>Количество товарных позиций</label><input type="number" id="lines_count" value="3" min="1" required></div>
-      <div class="field"><label>Стоимость груза, €</label><input type="number" id="cargo_value" value="15000" min="0" step="0.01" required></div>
-      <div class="field"><label>Комментарий (опционально)</label><textarea id="notes" maxlength="4000"></textarea></div>
-      <div id="estimatePreview" class="muted" style="margin-bottom:18px;"></div>
-      <button type="submit" class="btn btn-primary" id="submitAppBtn">Создать заявку</button>
-    </form>
-  </div>
-
-  <div class="card">
-    <div id="appsList"><p class="muted">Загрузка…</p></div>
-  </div>
+  <div id="content"><p class="muted">Загрузка…</p></div>
 </div></main>
 
 <footer><div class="wrap">© 2026 DBEX Customs</div></footer>
@@ -55,94 +21,147 @@
 <script src="js/api.js"></script>
 <script>
 requireLogin();
-const user = getUser();
-document.getElementById('userLabel').textContent = user ? user.full_name : '';
 document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); logout(); });
 
-document.getElementById('newAppBtn').addEventListener('click', () => {
-  const card = document.getElementById('newAppCard');
-  card.style.display = card.style.display === 'none' ? 'block' : 'none';
-});
+const appId = new URLSearchParams(window.location.search).get('id');
+const contentEl = document.getElementById('content');
 
-async function updateEstimatePreview() {
+async function load() {
+  if (!appId || !/^\d+$/.test(appId)) {
+    contentEl.innerHTML = '<p class="error-msg" style="display:block;">Некорректный идентификатор заявки</p>';
+    return;
+  }
   try {
-    const data = await api('/applications/estimate', { method: 'POST', body: {
-      operation_type: document.getElementById('operation_type').value,
-      lines_count: Number(document.getElementById('lines_count').value || 1),
-      cargo_value: Number(document.getElementById('cargo_value').value || 0),
-    }});
-    document.getElementById('estimatePreview').textContent = `Ориентировочная стоимость оформления: €${data.low} – €${data.high}`;
+    const data = await api(`/applications/${appId}`);
+    render(data);
   } catch (err) {
-    document.getElementById('estimatePreview').textContent = '';
+    contentEl.innerHTML = `<p class="error-msg" style="display:block;">${escapeHtml(err.message)}</p>`;
   }
 }
-['operation_type','lines_count','cargo_value'].forEach(id =>
-  document.getElementById(id).addEventListener('input', updateEstimatePreview)
-);
-updateEstimatePreview();
 
-document.getElementById('appForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const errorEl = document.getElementById('errorMsg');
-  const successEl = document.getElementById('successMsg');
-  errorEl.style.display = 'none'; successEl.style.display = 'none';
-  const btn = document.getElementById('submitAppBtn');
-  btn.disabled = true; btn.textContent = 'Отправляем…';
+function render(data) {
+  const app = data.application;
+  contentEl.innerHTML = '';
 
-  try {
-    const payload = {
-      operation_type: document.getElementById('operation_type').value,
-      lines_count: Number(document.getElementById('lines_count').value),
-      cargo_value: Number(document.getElementById('cargo_value').value),
-      notes: document.getElementById('notes').value.trim(),
-    };
-    const data = await api('/applications', { method: 'POST', body: payload });
-    successEl.textContent = `Заявка #${data.application.id} создана.`;
-    successEl.style.display = 'block';
-    document.getElementById('appForm').reset();
-    loadApplications();
-  } catch (err) {
-    errorEl.textContent = err.message;
-    errorEl.style.display = 'block';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Создать заявку';
-  }
-});
+  const head = document.createElement('div');
+  head.className = 'flex-between';
+  const h1 = document.createElement('h1');
+  h1.textContent = `Заявка #${app.id}`;
+  const badge = document.createElement('span');
+  badge.className = `badge badge-${app.status}`;
+  badge.textContent = STATUS_LABELS[app.status] || app.status;
+  head.appendChild(h1); head.appendChild(badge);
+  contentEl.appendChild(head);
 
-async function loadApplications() {
-  const listEl = document.getElementById('appsList');
-  try {
-    const data = await api('/applications');
-    if (!data.applications.length) {
-      listEl.innerHTML = '<p class="muted">Заявок пока нет. Создайте первую заявку выше.</p>';
-      return;
-    }
-    listEl.innerHTML = '';
-    data.applications.forEach(app => {
+  const summary = document.createElement('div');
+  summary.className = 'card';
+  summary.style.marginBottom = '24px';
+  summary.innerHTML = `
+    <p><strong>Тип операции:</strong> ${escapeHtml(TYPE_LABELS[app.operation_type] || app.operation_type)}</p>
+    <p><strong>Стоимость груза:</strong> €${escapeHtml(String(app.cargo_value))}</p>
+    <p><strong>Позиций:</strong> ${escapeHtml(String(app.lines_count))}</p>
+    <p><strong>Оценка стоимости оформления:</strong> €${escapeHtml(String(app.estimate_low))} – €${escapeHtml(String(app.estimate_high))}</p>
+    ${app.notes ? `<p><strong>Комментарий:</strong> ${escapeHtml(app.notes)}</p>` : ''}
+  `;
+  contentEl.appendChild(summary);
+
+  // Files
+  const filesCard = document.createElement('div');
+  filesCard.className = 'card';
+  filesCard.style.marginBottom = '24px';
+  filesCard.innerHTML = '<h2>Документы</h2>';
+
+  const filesList = document.createElement('div');
+  if (!data.files.length) {
+    filesList.innerHTML = '<p class="muted">Файлов пока нет.</p>';
+  } else {
+    data.files.forEach(f => {
       const row = document.createElement('div');
-      row.className = 'list-row';
-      const left = document.createElement('div');
-      const title = document.createElement('a');
-      title.href = `application.html?id=${app.id}`;
-      title.style.fontWeight = '700';
-      title.textContent = `Заявка #${app.id} — ${TYPE_LABELS[app.operation_type] || app.operation_type}`;
-      const sub = document.createElement('div');
-      sub.className = 'muted';
-      sub.textContent = `€${app.estimate_low} – €${app.estimate_high} · создана ${new Date(app.created_at).toLocaleDateString('ru-RU')}`;
-      left.appendChild(title); left.appendChild(sub);
-
-      const badge = document.createElement('span');
-      badge.className = `badge badge-${app.status}`;
-      badge.textContent = STATUS_LABELS[app.status] || app.status;
-
-      row.appendChild(left); row.appendChild(badge);
-      listEl.appendChild(row);
+      row.className = 'file-row';
+      const name = document.createElement('span');
+      name.textContent = `${f.original_name} (${(f.size_bytes/1024).toFixed(0)} КБ)`;
+      const dl = document.createElement('a');
+      dl.href = '#';
+      dl.className = 'btn btn-ghost btn-sm';
+      dl.textContent = 'Скачать';
+      dl.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await downloadFile(app.id, f.id, f.original_name);
+      });
+      row.appendChild(name); row.appendChild(dl);
+      filesList.appendChild(row);
     });
-  } catch (err) {
-    listEl.innerHTML = `<p class="error-msg" style="display:block;">${escapeHtml(err.message)}</p>`;
   }
+  filesCard.appendChild(filesList);
+
+  const uploadForm = document.createElement('form');
+  uploadForm.style.marginTop = '20px';
+  uploadForm.innerHTML = `
+    <div id="uploadError" class="error-msg"></div>
+    <div class="field"><label>Загрузить документ (PDF, изображение, Word, Excel — до 15 МБ)</label>
+      <input type="file" id="fileInput" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm" id="uploadBtn">Загрузить</button>
+  `;
+  uploadForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl = document.getElementById('uploadError');
+    errEl.style.display = 'none';
+    const fileInput = document.getElementById('fileInput');
+    if (!fileInput.files[0]) return;
+    const btn = document.getElementById('uploadBtn');
+    btn.disabled = true; btn.textContent = 'Загружаем…';
+    try {
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      await api(`/applications/${app.id}/files`, { method: 'POST', body: formData, isForm: true });
+      load();
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.textContent = 'Загрузить';
+    }
+  });
+  filesCard.appendChild(uploadForm);
+  contentEl.appendChild(filesCard);
+
+  // Events / timeline
+  const eventsCard = document.createElement('div');
+  eventsCard.className = 'card';
+  eventsCard.innerHTML = '<h2>История заявки</h2>';
+  const eventsList = document.createElement('div');
+  eventsList.className = 'events';
+  data.events.forEach(ev => {
+    const item = document.createElement('div');
+    item.className = 'event-item';
+    const when = document.createElement('div');
+    when.className = 'when';
+    when.textContent = new Date(ev.created_at).toLocaleString('ru-RU');
+    const msg = document.createElement('div');
+    msg.textContent = ev.message;
+    item.appendChild(when); item.appendChild(msg);
+    eventsList.appendChild(item);
+  });
+  eventsCard.appendChild(eventsList);
+  contentEl.appendChild(eventsCard);
 }
-loadApplications();
+
+async function downloadFile(appId, fileId, name) {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/applications/${appId}/files/${fileId}/download`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) { alert('Не удалось скачать файл'); return; }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+load();
 </script>
 </body>
 </html>

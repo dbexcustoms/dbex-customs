@@ -2,17 +2,26 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Заявка — DBEX Customs</title>
+<title>Админ-панель — DBEX Customs</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
-<body>
+<body class="bg-pattern">
 <header><div class="wrap nav">
   <a class="logo" href="index.html">DBEX<span class="sub">CUSTOMS</span></a>
-  <nav class="links"><a href="dashboard.html">← К заявкам</a><a href="#" id="logoutLink">Выйти</a></nav>
+  <nav class="links"><a href="#" id="logoutLink">Выйти</a></nav>
 </div></header>
 
 <main><div class="wrap">
-  <div id="content"><p class="muted">Загрузка…</p></div>
+  <h1>Админ-панель</h1>
+  <p class="muted" style="margin-bottom:32px;">Все заявки клиентов и изменение статусов.</p>
+  <div id="errorMsg" class="error-msg"></div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>ID</th><th>Клиент</th><th>Тип</th><th>Оценка</th><th>Статус</th><th></th></tr></thead>
+      <tbody id="appsBody"></tbody>
+    </table>
+  </div>
 </div></main>
 
 <footer><div class="wrap">© 2026 DBEX Customs</div></footer>
@@ -21,146 +30,72 @@
 <script src="js/api.js"></script>
 <script>
 requireLogin();
+const user = getUser();
+if (!user || user.role !== 'admin') {
+  document.body.innerHTML = '<main class="wrap"><p class="error-msg" style="display:block;margin-top:40px;">Доступ только для администраторов.</p></main>';
+}
 document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); logout(); });
 
-const appId = new URLSearchParams(window.location.search).get('id');
-const contentEl = document.getElementById('content');
+const STATUSES = Object.keys(STATUS_LABELS);
 
 async function load() {
-  if (!appId || !/^\d+$/.test(appId)) {
-    contentEl.innerHTML = '<p class="error-msg" style="display:block;">Некорректный идентификатор заявки</p>';
-    return;
-  }
+  const errorEl = document.getElementById('errorMsg');
+  const body = document.getElementById('appsBody');
   try {
-    const data = await api(`/applications/${appId}`);
-    render(data);
-  } catch (err) {
-    contentEl.innerHTML = `<p class="error-msg" style="display:block;">${escapeHtml(err.message)}</p>`;
-  }
-}
+    const data = await api('/admin/applications');
+    body.innerHTML = '';
+    data.applications.forEach(app => {
+      const tr = document.createElement('tr');
 
-function render(data) {
-  const app = data.application;
-  contentEl.innerHTML = '';
+      const idTd = document.createElement('td');
+      const link = document.createElement('a');
+      link.href = `application.html?id=${app.id}`;
+      link.textContent = `#${app.id}`;
+      idTd.appendChild(link);
 
-  const head = document.createElement('div');
-  head.className = 'flex-between';
-  const h1 = document.createElement('h1');
-  h1.textContent = `Заявка #${app.id}`;
-  const badge = document.createElement('span');
-  badge.className = `badge badge-${app.status}`;
-  badge.textContent = STATUS_LABELS[app.status] || app.status;
-  head.appendChild(h1); head.appendChild(badge);
-  contentEl.appendChild(head);
+      const clientTd = document.createElement('td');
+      clientTd.textContent = `${app.user_full_name} (${app.user_email})`;
 
-  const summary = document.createElement('div');
-  summary.className = 'card';
-  summary.style.marginBottom = '24px';
-  summary.innerHTML = `
-    <p><strong>Тип операции:</strong> ${escapeHtml(TYPE_LABELS[app.operation_type] || app.operation_type)}</p>
-    <p><strong>Стоимость груза:</strong> €${escapeHtml(String(app.cargo_value))}</p>
-    <p><strong>Позиций:</strong> ${escapeHtml(String(app.lines_count))}</p>
-    <p><strong>Оценка стоимости оформления:</strong> €${escapeHtml(String(app.estimate_low))} – €${escapeHtml(String(app.estimate_high))}</p>
-    ${app.notes ? `<p><strong>Комментарий:</strong> ${escapeHtml(app.notes)}</p>` : ''}
-  `;
-  contentEl.appendChild(summary);
+      const typeTd = document.createElement('td');
+      typeTd.textContent = TYPE_LABELS[app.operation_type] || app.operation_type;
 
-  // Files
-  const filesCard = document.createElement('div');
-  filesCard.className = 'card';
-  filesCard.style.marginBottom = '24px';
-  filesCard.innerHTML = '<h2>Документы</h2>';
+      const estTd = document.createElement('td');
+      estTd.textContent = `€${app.estimate_low}–€${app.estimate_high}`;
 
-  const filesList = document.createElement('div');
-  if (!data.files.length) {
-    filesList.innerHTML = '<p class="muted">Файлов пока нет.</p>';
-  } else {
-    data.files.forEach(f => {
-      const row = document.createElement('div');
-      row.className = 'file-row';
-      const name = document.createElement('span');
-      name.textContent = `${f.original_name} (${(f.size_bytes/1024).toFixed(0)} КБ)`;
-      const dl = document.createElement('a');
-      dl.href = '#';
-      dl.className = 'btn btn-ghost btn-sm';
-      dl.textContent = 'Скачать';
-      dl.addEventListener('click', async (e) => {
-        e.preventDefault();
-        await downloadFile(app.id, f.id, f.original_name);
+      const statusTd = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = `badge badge-${app.status}`;
+      badge.textContent = STATUS_LABELS[app.status] || app.status;
+      statusTd.appendChild(badge);
+
+      const actionTd = document.createElement('td');
+      const select = document.createElement('select');
+      select.style.padding = '6px 8px'; select.style.fontSize = '13px';
+      STATUSES.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s; opt.textContent = STATUS_LABELS[s];
+        if (s === app.status) opt.selected = true;
+        select.appendChild(opt);
       });
-      row.appendChild(name); row.appendChild(dl);
-      filesList.appendChild(row);
+      select.addEventListener('change', async () => {
+        try {
+          await api(`/admin/applications/${app.id}/status`, { method: 'PATCH', body: { status: select.value } });
+          load();
+        } catch (err) {
+          alert(err.message);
+        }
+      });
+      actionTd.appendChild(select);
+
+      tr.appendChild(idTd); tr.appendChild(clientTd); tr.appendChild(typeTd);
+      tr.appendChild(estTd); tr.appendChild(statusTd); tr.appendChild(actionTd);
+      body.appendChild(tr);
     });
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.style.display = 'block';
   }
-  filesCard.appendChild(filesList);
-
-  const uploadForm = document.createElement('form');
-  uploadForm.style.marginTop = '20px';
-  uploadForm.innerHTML = `
-    <div id="uploadError" class="error-msg"></div>
-    <div class="field"><label>Загрузить документ (PDF, изображение, Word, Excel — до 15 МБ)</label>
-      <input type="file" id="fileInput" required accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx">
-    </div>
-    <button type="submit" class="btn btn-primary btn-sm" id="uploadBtn">Загрузить</button>
-  `;
-  uploadForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const errEl = document.getElementById('uploadError');
-    errEl.style.display = 'none';
-    const fileInput = document.getElementById('fileInput');
-    if (!fileInput.files[0]) return;
-    const btn = document.getElementById('uploadBtn');
-    btn.disabled = true; btn.textContent = 'Загружаем…';
-    try {
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-      await api(`/applications/${app.id}/files`, { method: 'POST', body: formData, isForm: true });
-      load();
-    } catch (err) {
-      errEl.textContent = err.message;
-      errEl.style.display = 'block';
-    } finally {
-      btn.disabled = false; btn.textContent = 'Загрузить';
-    }
-  });
-  filesCard.appendChild(uploadForm);
-  contentEl.appendChild(filesCard);
-
-  // Events / timeline
-  const eventsCard = document.createElement('div');
-  eventsCard.className = 'card';
-  eventsCard.innerHTML = '<h2>История заявки</h2>';
-  const eventsList = document.createElement('div');
-  eventsList.className = 'events';
-  data.events.forEach(ev => {
-    const item = document.createElement('div');
-    item.className = 'event-item';
-    const when = document.createElement('div');
-    when.className = 'when';
-    when.textContent = new Date(ev.created_at).toLocaleString('ru-RU');
-    const msg = document.createElement('div');
-    msg.textContent = ev.message;
-    item.appendChild(when); item.appendChild(msg);
-    eventsList.appendChild(item);
-  });
-  eventsCard.appendChild(eventsList);
-  contentEl.appendChild(eventsCard);
 }
-
-async function downloadFile(appId, fileId, name) {
-  const token = getToken();
-  const res = await fetch(`${API_BASE}/applications/${appId}/files/${fileId}/download`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!res.ok) { alert('Не удалось скачать файл'); return; }
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-}
-
 load();
 </script>
 </body>
